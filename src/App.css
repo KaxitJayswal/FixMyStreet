@@ -1,0 +1,34 @@
+/* Modal effects */
+.blur-sm {
+  filter: blur(5px);
+  transition: filter 0.3s ease;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+/* Animation for modal fade-in */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Ensure modal is above all content */
+.z-40 {
+  z-index: 40;
+}
+.z-50 {
+  z-index: 50;
+}
+
+/* Custom backdrop blur */
+.modal-backdrop {
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  background-color: transparent !important;
+}

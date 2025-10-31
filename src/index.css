@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+/* Custom animations for modal */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+/* Prevent scrolling when modal is open */
+
+/* Modal backdrop blur effect */
+.backdrop-blur {
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+/* Add a transition for blur effects */
+.transition-blur {
+  transition: filter 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+/* Mobile-specific enhancements */
+@media (max-width: 640px) {
+  /* Ensure text is readable on small screens */
+  body {
+    -webkit-text-size-adjust: 100%;
+  }
+  
+  /* Improve touch targets */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Smooth scrolling for better UX */
+html {
+  scroll-behavior: smooth;
+}
