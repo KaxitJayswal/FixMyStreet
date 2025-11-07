@@ -1,21 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 
 // Import components
 import Navbar from '../src/components/Navbar';
 import Footer from '../src/components/Footer';
 import ReportForm from '../src/components/ReportForm';
 import AuthPage from '../src/components/AuthPage';
-
-// Fix Leaflet default icon issue
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
-  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
-});
+import ReportsList from '../src/components/ReportsList';
+import MapView from '../src/components/MapView';
 
 const HomePage = () => {
   const [activeTab, setActiveTab] = useState('home');
@@ -47,10 +39,6 @@ const HomePage = () => {
       setActiveTab('report');
     }
   };
-
-  // Default center coordinates (London, UK as an example)
-  const defaultCenter = [51.505, -0.09];
-  const defaultZoom = 13;
 
   return (
     <>
@@ -163,97 +151,12 @@ const HomePage = () => {
 
           {/* Map Tab Content */}
           {activeTab === 'map' && (
-            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-semibold mb-4">Street Issues Map</h2>
-              <div className="h-[400px] sm:h-[500px] lg:h-[600px] w-full rounded-lg overflow-hidden">
-                <MapContainer
-                  className='z-0'
-                  center={defaultCenter}
-                  zoom={defaultZoom}
-                  style={{ height: '100%', width: '100%' }}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  {/* Example markers - would be populated dynamically from API */}
-                  <Marker position={[51.505, -0.09]}>
-                    <Popup>
-                      <div>
-                        <h3 className="font-bold">Pothole</h3>
-                        <p>Reported on: Sept 10, 2025</p>
-                        <p>Status: Pending</p>
-                      </div>
-                    </Popup>
-                  </Marker>
-                  <Marker position={[51.51, -0.08]}>
-                    <Popup>
-                      <div>
-                        <h3 className="font-bold">Broken Streetlight</h3>
-                        <p>Reported on: Sept 8, 2025</p>
-                        <p>Status: In Progress</p>
-                      </div>
-                    </Popup>
-                  </Marker>
-                </MapContainer>
-              </div>
-            </div>
+            <MapView />
           )}
 
           {/* Reports Tab Content */}
           {activeTab === 'reports' && (
-            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
-              <h2 className="text-lg sm:text-xl font-semibold mb-4">Recent Reports</h2>
-              <div className="overflow-x-auto -mx-4 sm:mx-0">
-                <div className="inline-block min-w-full align-middle">
-                  <div className="overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issue</th>
-                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Location</th>
-                      <th className="hidden sm:table-cell px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {/* Example rows - would be populated dynamically from API */}
-                    <tr>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">Pothole</td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">Oxford Street</td>
-                      <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm">Sept 10, 2025</td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                          Pending
-                        </span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">Broken Streetlight</td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">Baker Street</td>
-                      <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm">Sept 8, 2025</td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                          In Progress
-                        </span>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">Graffiti</td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm">Camden High Street</td>
-                      <td className="hidden sm:table-cell px-3 sm:px-6 py-4 whitespace-nowrap text-sm">Sept 5, 2025</td>
-                      <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          Resolved
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ReportsList />
           )}
 
           {/* Report Tab Content */}

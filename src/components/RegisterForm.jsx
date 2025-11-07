@@ -1,18 +1,31 @@
 import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 function RegisterForm({ onRegister, onSwitchToLogin }) {
+  const { register, clearError } = useAuth();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'user',
+    verificationCode: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [showAdminFields, setShowAdminFields] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    setError('');
+    clearError();
+  };
+
+  const handleRoleChange = (e) => {
+    const role = e.target.value;
+    setFormData(prev => ({ ...prev, role }));
+    setShowAdminFields(role === 'admin');
     setError('');
   };
 
@@ -34,39 +47,26 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
       return;
     }
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Check if user already exists
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const existingUser = users.find(u => u.email === formData.email);
-
-    if (existingUser) {
-      setError('An account with this email already exists');
+    if (formData.role === 'admin' && !formData.verificationCode) {
+      setError('Verification code is required for admin registration');
       setIsSubmitting(false);
       return;
     }
 
-    // Create new user
-    const newUser = {
-      id: Date.now().toString(),
-      name: formData.name,
+    const result = await register({
       email: formData.email,
-      password: formData.password, // In production, hash this!
-      createdAt: new Date().toISOString()
-    };
+      password: formData.password,
+      name: formData.name,
+      role: formData.role,
+      ...(formData.role === 'admin' && { verificationCode: formData.verificationCode })
+    });
 
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
+    if (result.success) {
+      onRegister(result.user);
+    } else {
+      setError(result.error);
+    }
 
-    // Auto login after registration
-    localStorage.setItem('currentUser', JSON.stringify({ 
-      email: newUser.email, 
-      name: newUser.name,
-      id: newUser.id 
-    }));
-
-    onRegister({ email: newUser.email, name: newUser.name, id: newUser.id });
     setIsSubmitting(false);
   };
 
@@ -144,6 +144,41 @@ function RegisterForm({ onRegister, onSwitchToLogin }) {
             required
           />
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Account Type
+          </label>
+          <select
+            name="role"
+            value={formData.role}
+            onChange={handleRoleChange}
+            className="w-full border border-gray-300 rounded-lg shadow-sm py-2.5 sm:py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-base sm:text-sm"
+          >
+            <option value="user">User</option>
+            <option value="admin">Admin (Government Official)</option>
+          </select>
+        </div>
+
+        {showAdminFields && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Admin Verification Code
+            </label>
+            <input
+              type="text"
+              name="verificationCode"
+              value={formData.verificationCode}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              placeholder="Enter government verification code"
+              required={formData.role === 'admin'}
+            />
+            <p className="text-xs text-gray-600 mt-1">
+              Contact your administrator to obtain a verification code
+            </p>
+          </div>
+        )}
 
         <div className="flex items-start">
           <input

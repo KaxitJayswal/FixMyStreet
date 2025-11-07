@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 function LoginForm({ onLogin, onSwitchToRegister }) {
+  const { login, clearError } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -11,7 +13,8 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    setError(''); // Clear error when user types
+    setError('');
+    clearError();
   };
 
   const handleSubmit = async (e) => {
@@ -19,23 +22,15 @@ function LoginForm({ onLogin, onSwitchToRegister }) {
     setIsSubmitting(true);
     setError('');
 
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const result = await login({
+      email: formData.email,
+      password: formData.password
+    });
 
-    // Simple validation (in production, validate against backend)
-    const users = JSON.parse(localStorage.getItem('users') || '[]');
-    const user = users.find(u => u.email === formData.email && u.password === formData.password);
-
-    if (user) {
-      // Login successful
-      localStorage.setItem('currentUser', JSON.stringify({ 
-        email: user.email, 
-        name: user.name,
-        id: user.id 
-      }));
-      onLogin({ email: user.email, name: user.name, id: user.id });
+    if (result.success) {
+      onLogin(result.user);
     } else {
-      setError('Invalid email or password');
+      setError(result.error);
     }
 
     setIsSubmitting(false);

@@ -1,74 +1,64 @@
 import React, { useState } from 'react';
+import { useIssues } from '../contexts/IssuesContext';
+import { useAuth } from '../contexts/AuthContext';
 
 function ReportForm() {
+  const { reportIssue } = useIssues();
+  const { isAuthenticated } = useAuth();
   const [uploadedImage, setUploadedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [detectedIssue, setDetectedIssue] = useState(null);
   const [detectedLocation, setDetectedLocation] = useState(null);
   const [additionalNotes, setAdditionalNotes] = useState('');
-  const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
-  // Simulated AI detection function (replace with actual AI API call)
-  // TODO: Integrate with actual AI model API
-  // Example AI services: Google Cloud Vision API, AWS Rekognition, Azure Computer Vision
-  // or a custom trained model for street issue detection
-  const analyzeImage = async (file) => {
+  // Get user location
+  const getUserLocation = () => {
+    return new Promise((resolve) => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            resolve({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+              address: 'Location detected from device'
+            });
+          },
+          () => {
+            // Default location if permission denied
+            resolve({
+              lat: 12.9716,
+              lng: 77.5946,
+              address: 'Location not available - using default'
+            });
+          }
+        );
+      } else {
+        resolve({
+          lat: 12.9716,
+          lng: 77.5946,
+          address: 'Geolocation not supported'
+        });
+      }
+    });
+  };
+
+  const analyzeImage = async () => {
     setIsAnalyzing(true);
     
-    // TODO: Replace this simulation with actual API call
-    // Example:
-    // const formData = new FormData();
-    // formData.append('image', file);
-    // const response = await fetch('YOUR_AI_API_ENDPOINT', {
-    //   method: 'POST',
-    //   body: formData
-    // });
-    // const result = await response.json();
-    // setDetectedIssue({ type: result.detectedType, confidence: result.confidence });
+    // Simulate AI processing time (In production, this will be done by backend)
+    await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Simulate AI processing time
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // The backend will handle image classification
+    // For now, just show that we're ready to submit
+    setDetectedIssue({ type: 'Analyzing...', confidence: 0 });
     
-    // Simulate AI detection results
-    const mockDetections = [
-      { type: 'Pothole', confidence: 0.95 },
-      { type: 'Broken Streetlight', confidence: 0.88 },
-      { type: 'Graffiti', confidence: 0.92 },
-      { type: 'Fly-tipping', confidence: 0.87 },
-      { type: 'Damaged Road Sign', confidence: 0.90 }
-    ];
-    
-    const randomDetection = mockDetections[Math.floor(Math.random() * mockDetections.length)];
-    
-    setDetectedIssue(randomDetection);
-    
-    // Try to get location from image EXIF data or device GPS
-    // TODO: In production, extract GPS from image EXIF data first
-    // Libraries like 'exif-js' or 'piexifjs' can help extract EXIF data
-    // If no EXIF GPS data, fall back to device location
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          // TODO: Use reverse geocoding API to get actual address
-          // Example: Google Maps Geocoding API, OpenStreetMap Nominatim
-          setDetectedLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            address: 'Location detected from device' // Replace with actual address
-          });
-        },
-        () => {
-          setDetectedLocation({
-            lat: 51.505,
-            lng: -0.09,
-            address: 'Location not available - using default'
-          });
-        }
-      );
-    }
+    // Get location
+    const location = await getUserLocation();
+    setDetectedLocation(location);
     
     setIsAnalyzing(false);
   };
@@ -76,39 +66,94 @@ function ReportForm() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(file.type)) {
+        setSubmitError('Please upload only JPG, JPEG, or PNG images');
+        return;
+      }
+
+      // Validate file size (5MB)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        setSubmitError('Image size must be less than 5MB');
+        return;
+      }
+
+      console.log('Image selected:', {
+        name: file.name,
+        type: file.type,
+        size: `${(file.size / 1024 / 1024).toFixed(2)} MB`
+      });
+
       setUploadedImage(file);
+      setSubmitError(''); // Clear any previous errors
       
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
       };
+      reader.onerror = () => {
+        setSubmitError('Failed to read image file');
+      };
       reader.readAsDataURL(file);
       
       // Analyze image with AI
-      analyzeImage(file);
+      analyzeImage();
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    if (!isAuthenticated) {
+      setSubmitError('You must be logged in to report an issue');
+      return;
+    }
+
+    if (!uploadedImage || !detectedLocation) {
+      setSubmitError('Please upload an image and allow location access');
+      return;
+    }
+
     setIsSubmitting(true);
+    setSubmitError('');
     
-    // Simulate API submission
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Reset form
-    setSubmitSuccess(true);
-    setTimeout(() => {
-      setUploadedImage(null);
-      setImagePreview(null);
-      setDetectedIssue(null);
-      setDetectedLocation(null);
-      setAdditionalNotes('');
-      setEmail('');
-      setSubmitSuccess(false);
-      setIsSubmitting(false);
-    }, 3000);
+    const result = await reportIssue({
+      image: uploadedImage,
+      latitude: detectedLocation.lat,
+      longitude: detectedLocation.lng
+    });
+
+    if (result.success) {
+      // Update detected issue with actual data from backend
+      if (result.issue && result.issue.category) {
+        const formattedCategory = result.issue.category
+          .replace(/_/g, ' ')
+          .replace(/india/gi, '')
+          .trim()
+          .split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+        
+        setDetectedIssue({
+          type: formattedCategory,
+          confidence: result.issue.confidence || 0.95
+        });
+      }
+      
+      setSubmitSuccess(true);
+
+      // Reset form after 3 seconds
+      setTimeout(() => {
+        handleReset();
+      }, 3000);
+    } else {
+      setSubmitError(result.error || 'Failed to submit report');
+    }
+
+    setIsSubmitting(false);
   };
 
   const handleReset = () => {
@@ -138,6 +183,11 @@ function ReportForm() {
               </svg>
             </div>
             <h3 className="text-2xl font-bold text-green-700 mb-2">Report Submitted Successfully!</h3>
+            {detectedIssue && (
+              <p className="text-lg font-semibold text-green-600 mb-2">
+                Issue Detected: {detectedIssue.type}
+              </p>
+            )}
             <p className="text-gray-700">Thank you for helping improve our community. You'll receive updates via email.</p>
           </div>
         ) : (
@@ -263,20 +313,16 @@ function ReportForm() {
                     className="w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
                     placeholder="Add any additional details about the issue..."
                   ></textarea>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Note: You are logged in. Updates will be sent to your account email.
+                  </p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email for Updates (Optional)
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    placeholder="your.email@example.com"
-                  />
-                </div>
+                {submitError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                    {submitError}
+                  </div>
+                )}
 
                 {/* Submit Button */}
                 <div className="flex flex-col sm:flex-row gap-3 pt-4">
